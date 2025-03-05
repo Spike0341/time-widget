@@ -1,0 +1,23 @@
+{
+  "name": "time-widget",
+  "version": "1.0.0",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.Spike0341.time-widget",
+    "win": {
+      "target": "portable"
+    }
+  },
+  "keywords": [Clock, Time, Widget],
+  "author": "Spike0341",
+  "license": "ISC",
+  "description": "",
+  "devDependencies": {
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8"
+  }
+}

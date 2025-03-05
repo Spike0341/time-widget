@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Time Widget</title>
+    <style>
+      body {
+        font-family: "Digital-7", monospace;
+        background-color: rgba(34, 34, 34, 0.8);
+        color: #0fe4ff;
+        margin: 0;
+        padding: 10px;
+        user-select: none;
+        overflow: hidden;
+      }
+
+      @font-face {
+        font-family: "Digital-7";
+        src: url("./fonts/digital-7.regular.ttf") format("truetype");
+      }
+
+      .container {
+        display: flex;
+        flex-direction: column;
+        height: fit-content;
+        width:fit-content
+        justify-content: center;
+        align-items: center;
+        -webkit-app-region: drag;
+      }
+
+      input,
+      button,
+      .gear-icon {
+        -webkit-app-region: no-drag;
+      }
+
+      .clock {
+        font-size: 30vw;
+        text-align: center;
+        margin: 10px 0;
+        text-shadow: 0 0 10px #0fe4ff;
+        letter-spacing: 2px;
+      }
+
+      .settings-panel {
+        display: none;
+        margin-bottom: 20px;
+      }
+
+      .buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .gear-icon {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        font-size: 1.5rem;
+        cursor: pointer;
+        opacity: 0.5;
+        transition: opacity 0.3s;
+      }
+
+      .gear-icon:hover {
+        opacity: 1;
+      }
+
+      button {
+        background-color: #444;
+        color: #fff;
+        border: none;
+        padding: 10px 15px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        transition: background-color 0.3s;
+      }
+
+      button:hover {
+        background-color: #555;
+      }
+
+      button.active {
+        background-color: #00aa55;
+      }
+
+      .alarm-container {
+        overflow-y: auto;
+        flex-grow: 1;
+      }
+
+      .alarm-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        margin-bottom: 5px;
+        background-color: #333;
+        border-radius: 5px;
+      }
+
+      .alarm-time {
+        flex: 0 0 80px;
+      }
+
+      .alarm-name {
+        flex-grow: 1;
+        margin: 0 10px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .alarm-controls {
+        display: flex;
+        gap: 5px;
+      }
+
+      .timer-display {
+        font-size: 2rem;
+        text-align: center;
+        margin: 10px 0;
+        display: none;
+        text-shadow: 0 0 5px #0fe4ff;
+        letter-spacing: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="clock" id="clock">00:00:00</div>
+      <div class="timer-display" id="timer-display">25:00</div>
+
+      <div class="gear-icon" id="gear-icon">⚙️</div>
+
+      <div class="settings-panel" id="settings-panel">
+        <div class="buttons">
+          <button id="pomodoro-btn">Pomodoro</button>
+          <button id="add-alarm-btn">Add Alarm</button>
+        </div>
+
+        <div class="alarm-container" id="alarm-container">
+          <!-- Alarms will be added here -->
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // Store alarms in localStorage to persist between sessions
+      let alarms = JSON.parse(localStorage.getItem("alarms")) || [];
+      let pomodoroActive = false;
+      let pomodoroTimer = null;
+      let pomodoroTimeLeft = 25 * 60; // 25 minutes in seconds
+
+      // Update clock
+      function updateClock() {
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, "0");
+        const minutes = now.getMinutes().toString().padStart(2, "0");
+        const seconds = now.getSeconds().toString().padStart(2, "0");
+        document.getElementById(
+          "clock"
+        ).textContent = `${hours}:${minutes}:${seconds}`;
+
+        // Check alarms
+        checkAlarms(hours, minutes);
+      }
+
+      // Check if any alarms should trigger
+      function checkAlarms(hours, minutes) {
+        alarms.forEach((alarm) => {
+          if (
+            alarm.active &&
+            alarm.hours === hours &&
+            alarm.minutes === minutes &&
+            alarm.triggered === false
+          ) {
+            triggerAlarm(alarm);
+            alarm.triggered = true;
+            saveAlarms();
+          }
+        });
+      }
+
+      // Trigger an alarm
+      function triggerAlarm(alarm) {
+        // This would play a sound in the full implementation
+        alert(`Alarm: ${alarm.name || "Unnamed Alarm"}`);
+      }
+
+      // Save alarms to localStorage
+      function saveAlarms() {
+        localStorage.setItem("alarms", JSON.stringify(alarms));
+      }
+
+      // Render all alarms
+      function renderAlarms() {
+        const container = document.getElementById("alarm-container");
+        container.innerHTML = "";
+
+        alarms.forEach((alarm, index) => {
+          if (index >= 10) return; // Limit to 10 alarms
+
+          const alarmItem = document.createElement("div");
+          alarmItem.className = "alarm-item";
+
+          const timeDisplay = document.createElement("div");
+          timeDisplay.className = "alarm-time";
+          timeDisplay.textContent = `${alarm.hours}:${alarm.minutes}`;
+
+          const nameInput = document.createElement("input");
+          nameInput.className = "alarm-name";
+          nameInput.value = alarm.name || "";
+          nameInput.placeholder = "Alarm name";
+          nameInput.addEventListener("change", () => {
+            alarm.name = nameInput.value;
+            saveAlarms();
+          });
+
+          const controlsDiv = document.createElement("div");
+          controlsDiv.className = "alarm-controls";
+
+          const toggleBtn = document.createElement("button");
+          toggleBtn.textContent = alarm.active ? "On" : "Off";
+          toggleBtn.className = alarm.active ? "active" : "";
+          toggleBtn.addEventListener("click", () => {
+            alarm.active = !alarm.active;
+            alarm.triggered = false; // Reset triggered state when toggling
+            toggleBtn.textContent = alarm.active ? "On" : "Off";
+            toggleBtn.className = alarm.active ? "active" : "";
+            saveAlarms();
+          });
+
+          const deleteBtn = document.createElement("button");
+          deleteBtn.textContent = "×";
+          deleteBtn.addEventListener("click", () => {
+            alarms.splice(index, 1);
+            saveAlarms();
+            renderAlarms();
+          });
+
+          controlsDiv.appendChild(toggleBtn);
+          controlsDiv.appendChild(deleteBtn);
+
+          alarmItem.appendChild(timeDisplay);
+          alarmItem.appendChild(nameInput);
+          alarmItem.appendChild(controlsDiv);
+
+          container.appendChild(alarmItem);
+        });
+      }
+
+      // Add a new alarm
+      function addAlarm() {
+        if (alarms.length >= 10) {
+          alert("Maximum 10 alarms allowed");
+          return;
+        }
+
+        const now = new Date();
+        const hours = now.getHours().toString().padStart(2, "0");
+        const minutes = now.getMinutes().toString().padStart(2, "0");
+
+        const timeStr = prompt(
+          "Enter alarm time (HH:MM)",
+          `${hours}:${minutes}`
+        );
+        if (!timeStr) return;
+
+        const [inputHours, inputMinutes] = timeStr.split(":");
+        if (!inputHours || !inputMinutes) {
+          alert("Invalid time format. Use HH:MM");
+          return;
+        }
+
+        const newAlarm = {
+          hours: inputHours.padStart(2, "0"),
+          minutes: inputMinutes.padStart(2, "0"),
+          name: "",
+          active: true,
+          triggered: false,
+        };
+
+        alarms.push(newAlarm);
+        saveAlarms();
+        renderAlarms();
+      }
+
+      // Handle Pomodoro timer
+      function togglePomodoro() {
+        const pomodoroBtn = document.getElementById("pomodoro-btn");
+        const timerDisplay = document.getElementById("timer-display");
+
+        if (pomodoroActive) {
+          // Stop pomodoro
+          clearInterval(pomodoroTimer);
+          pomodoroActive = false;
+          pomodoroBtn.textContent = "Pomodoro";
+          pomodoroBtn.className = "";
+          timerDisplay.style.display = "none";
+        } else {
+          // Start pomodoro
+          pomodoroActive = true;
+          pomodoroTimeLeft = 25 * 60; // Reset to 25 minutes
+          updatePomodoroDisplay();
+          timerDisplay.style.display = "block";
+          pomodoroBtn.textContent = "Stop";
+          pomodoroBtn.className = "active";
+
+          pomodoroTimer = setInterval(() => {
+            pomodoroTimeLeft--;
+            updatePomodoroDisplay();
+
+            if (pomodoroTimeLeft <= 0) {
+              alert("Pomodoro session completed!");
+              togglePomodoro(); // Turn off the timer
+            }
+          }, 1000);
+        }
+      }
+
+      function updatePomodoroDisplay() {
+        const minutes = Math.floor(pomodoroTimeLeft / 60)
+          .toString()
+          .padStart(2, "0");
+        const seconds = (pomodoroTimeLeft % 60).toString().padStart(2, "0");
+        document.getElementById(
+          "timer-display"
+        ).textContent = `${minutes}:${seconds}`;
+      }
+
+      // Toggle settings panel
+      function toggleSettings() {
+        const settingsPanel = document.getElementById("settings-panel");
+        if (settingsPanel.style.display === "block") {
+          settingsPanel.style.display = "none";
+        } else {
+          settingsPanel.style.display = "block";
+        }
+      }
+
+      // Initialize the widget
+      function init() {
+        // Update clock every second
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        // Render any saved alarms
+        renderAlarms();
+
+        // Setup event listeners
+        document
+          .getElementById("add-alarm-btn")
+          .addEventListener("click", addAlarm);
+        document
+          .getElementById("pomodoro-btn")
+          .addEventListener("click", togglePomodoro);
+        document
+          .getElementById("gear-icon")
+          .addEventListener("click", toggleSettings);
+      }
+
+      // Start the app
+      document.addEventListener("DOMContentLoaded", init);
+    </script>
+  </body>
+</html>
