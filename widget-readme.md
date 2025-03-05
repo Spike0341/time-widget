@@ -2,7 +2,7 @@
 
 A lightweight desktop widget for Windows featuring a retro digital clock display with alarm functionality and a Pomodoro timer.
 
-![Widget Screenshot](screenshot.png)
+![Screenshot](https://github.com/user-attachments/assets/723f793d-792f-4f10-bcaa-5bbda7e55eb1)
 
 ## Features
 
